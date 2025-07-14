@@ -1,8 +1,6 @@
 package com.github.minecraftschurlimods.bibliocraft.net;
 
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BigBookSignPacket;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BigBookC2SSyncPacket;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.SetBigBookPageInLecternPacket;
+import com.github.minecraftschurlimods.bibliocraft.content.bigbook.*;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.OpenBookInLecternPacket;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.TakeLecternBookPacket;
 import net.minecraft.resources.ResourceLocation;
@@ -29,10 +27,10 @@ public class Payload {
         );
         CHANNEL.registerMessage(
                 id++,
-                BigBookC2SSyncPacket.class,
-                BigBookC2SSyncPacket::toBytes,
-                BigBookC2SSyncPacket::fromBytes,
-                BigBookC2SSyncPacket::handle
+                BigBookSyncPacket.class,
+                BigBookSyncPacket::toBytes,
+                BigBookSyncPacket::fromBytes,
+                BigBookSyncPacket::handle
         );
         CHANNEL.registerMessage(
                 id++,
@@ -54,6 +52,20 @@ public class Payload {
                 TakeLecternBookPacket::toBytes,
                 TakeLecternBookPacket::fromBytes,
                 TakeLecternBookPacket::handle
+        );
+        CHANNEL.registerMessage(
+                id++,
+                BigBookRequestPacket.class,
+                BigBookRequestPacket::toBytes,
+                BigBookRequestPacket::fromBytes,
+                BigBookRequestPacket::handle
+        );
+        CHANNEL.registerMessage(
+                id++,
+                BigBookResponsePacket.class,
+                BigBookResponsePacket::toBytes,
+                BigBookResponsePacket::fromBytes,
+                BigBookResponsePacket::handle
         );
     }
 }

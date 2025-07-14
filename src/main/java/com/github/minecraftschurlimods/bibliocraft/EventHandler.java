@@ -1,13 +1,20 @@
 package com.github.minecraftschurlimods.bibliocraft;
 
 import com.github.minecraftschurlimods.bibliocraft.compat.CreateEnchantmentIndustry.CreateEnchantmentIndustryCompat;
+import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BookStorage;
 import com.github.minecraftschurlimods.bibliocraft.content.bigbook.WrittenBigBookContent;
 import com.github.minecraftschurlimods.bibliocraft.init.BCRegistries;
 import com.github.minecraftschurlimods.bibliocraft.net.Payload;
+import com.github.minecraftschurlimods.bibliocraft.util.BCUtil;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.LecternUtil;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.OpenBookInLecternPacket;
+import com.simibubi.create.foundation.ModFilePackResources;
 import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
@@ -18,12 +25,15 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.LecternBlock;
 import net.minecraft.world.level.block.entity.LecternBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.event.AddPackFindersEvent;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.forgespi.language.IModFileInfo;
+import net.minecraftforge.forgespi.locating.IModFile;
 import net.minecraftforge.network.PacketDistributor;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -38,6 +48,7 @@ public final class EventHandler {
 //        modBus.addListener(EventPriority.LOWEST, EventHandler::constructMod);
 //        modBus.addListener(EventPriority.LOWEST, EventHandler::commonSetup);
 //        modBus.addListener(EventHandler::registerPayloadHandlers);
+        modBus.addListener(EventHandler::addPackFinders);
         Payload.registerMesssages();
         MinecraftForge.EVENT_BUS.addListener(EventHandler::rightClickBlock);
         if (ModList.get().isLoaded("create_enchantment_industry")) {
@@ -49,6 +60,22 @@ public final class EventHandler {
 ////        ((BibliocraftWoodTypeRegistryImpl) BibliocraftApi.getWoodTypeRegistry()).register();
 //        BCRegistries.init(Objects.requireNonNull(ModList.get().getModContainerById(BibliocraftApi.MOD_ID).orElseThrow().getEventBus()));
 //    }
+
+    public static void addPackFinders(AddPackFindersEvent event) {
+        if (event.getPackType() == PackType.CLIENT_RESOURCES) {
+            IModFileInfo modFileInfo = ModList.get().getModFileById(Bibliocraft.MOD_ID);
+            if (modFileInfo == null) {
+                return;
+            }
+            IModFile modFile = modFileInfo.getFile();
+            event.addRepositorySource(consumer -> {
+                Pack pack = Pack.readMetaAndCreate(BCUtil.bcLoc("big_book").toString(), Component.literal("Bibliocraft Legacy Big Book"), false, id -> new ModFilePackResources(id, modFile, "resourcepacks/big_book"), PackType.CLIENT_RESOURCES, Pack.Position.TOP, PackSource.BUILT_IN);
+                if (pack != null) {
+                    consumer.accept(pack);
+                }
+            });
+        }
+    }
 
 
 
@@ -74,10 +101,20 @@ public final class EventHandler {
             }
             LecternBlock.resetBookState(player, level, pos, state, true);
             level.playSound(null, pos, SoundEvents.BOOK_PUT, SoundSource.BLOCKS, 1f, 1f);
-            WrittenBigBookContent content;
-            if ((content = WrittenBigBookContent.decode(stack.getTag())) != null) {
+//            WrittenBigBookContent content;
+//            if ((content = WrittenBigBookContent.decode(stack.getTag())) != null) {
+//                lectern.pageCount = content.pages().size();
+//            }
+            WrittenBigBookContent content = WrittenBigBookContent.decode(BookStorage.get().getBookFromItem(stack, false));
+            if (content != null)
+            {
                 lectern.pageCount = content.pages().size();
             }
+            else
+            {
+                lectern.pageCount = 0;
+            }
+
             event.setCancellationResult(InteractionResult.SUCCESS);
             event.setCanceled(true);
         } else if (book.hasTag()) {
@@ -90,4 +127,5 @@ public final class EventHandler {
             event.setCanceled(true);
         }
     }
+
 }

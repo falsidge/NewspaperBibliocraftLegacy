@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public final class BigBookCloningWrapper implements ICraftingCategoryExtension {
     BigBookCloningRecipe recipe = null;
@@ -33,15 +34,16 @@ public final class BigBookCloningWrapper implements ICraftingCategoryExtension {
         builder.setShapeless();
         List<List<ItemStack>> list = new ArrayList<>();
         ItemStack inputItem = new ItemStack(BCItems.WRITTEN_BIG_BOOK.get());
-        WrittenBigBookContent written = new WrittenBigBookContent(new ArrayList<>(), "Title", "Author", true, 0,0);
-        inputItem.setTag(WrittenBigBookContent.encode(written));
+        BigBookInfo written = new BigBookInfo(0, UUID.randomUUID());
+        SignedBigBookInfo signed = new SignedBigBookInfo("Title", "Author", 0);
+        inputItem.setTag(signed.addTag(written.encode()));
 
         list.add(List.of(inputItem));
         list.add(List.of(new ItemStack(BCItems.BIG_BOOK.get())));
 
         List<ItemStack> outputList = new ArrayList<>();
         ItemStack outputItem = new ItemStack(BCItems.WRITTEN_BIG_BOOK.get());
-        outputItem.setTag(WrittenBigBookContent.encode(written.tryCraftCopy()));
+        outputItem.setTag(signed.tryCraftCopy().addTag(written.encode()));
         outputList.add(outputItem);
 
         craftingGridHelper.createAndSetInputs(builder, list,3,3);

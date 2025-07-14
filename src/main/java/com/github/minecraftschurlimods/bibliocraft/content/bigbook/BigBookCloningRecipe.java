@@ -52,14 +52,16 @@ public class BigBookCloningRecipe extends CustomRecipe {
                 books++;
             } else return ItemStack.EMPTY;
         }
-        WrittenBigBookContent content =  WrittenBigBookContent.decode(stack.getTag());
+//        BigBookInfo content =  BigBookInfo.decode(stack.getTag());
 //        if (stack.isEmpty() || books < 1 || content == null) return ItemStack.EMPTY;
 //        WrittenBigBookContent contentCopy = content.tryCraftCopy();
 //        if (contentCopy == null) return ItemStack.EMPTY;
         ItemStack result = stack.copyWithCount(books);
-        WrittenBigBookContent copy = content.tryCraftCopy();
-        if (copy == null) return ItemStack.EMPTY;
-        result.setTag(WrittenBigBookContent.encode(copy));
+//        WrittenBigBookContent copy = content.tryCraftCopy();
+//        if (copy == null) return ItemStack.EMPTY;
+        SignedBigBookInfo signedBigBookInfo = SignedBigBookInfo.decode(stack.getTag()).tryCraftCopy();
+        if (signedBigBookInfo == null) return ItemStack.EMPTY;
+        result.setTag(signedBigBookInfo.addTag(stack.getTag().copy()));
 //        result.set(BCDataComponents.WRITTEN_BIG_BOOK_CONTENT, contentCopy);
         return result;
     }

@@ -1,12 +1,16 @@
 package com.github.minecraftschurlimods.bibliocraft.content.bigbook;
 
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
+
+import java.util.UUID;
 import java.util.function.Supplier;
 
-public record BigBookS2CSyncPacket(WrittenBigBookContent content, InteractionHand hand){
+public record BigBookSyncPacket(WrittenBigBookContent content, BigBookInfo info, InteractionHand hand){
 //    public static final Type<BigBookSyncPacket> TYPE = new Type<>(BCUtil.bcLoc("big_book_sync"));
 //    public static final StreamCodec<RegistryFriendlyByteBuf, BigBookSyncPacket> STREAM_CODEC = StreamCodec.composite(
 //            BigBookContent.STREAM_CODEC, BigBookSyncPacket::content,
@@ -15,16 +19,21 @@ public record BigBookS2CSyncPacket(WrittenBigBookContent content, InteractionHan
 
     public void handle(Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() -> {
-            ctx.get().getSender().getItemInHand(hand).setTag(WrittenBigBookContent.encode(content));
+            BookStorage storage = BookStorage.get();
+            ItemStack item = ctx.get().getSender().getItemInHand(hand);
+//            UUID id = BookStorage.getUUIDFromItem(item, true);
+            storage.setBookContents(info.uuid(), content.encode());
+            item.setTag(info.encode());
         });
     }
     public void toBytes(FriendlyByteBuf buf) {
-        buf.writeNbt(WrittenBigBookContent.encode(content));
+        buf.writeNbt(content.encode());
+        buf.writeNbt(info.encode());
         buf.writeEnum(hand);
     }
-    public static BigBookS2CSyncPacket fromBytes(FriendlyByteBuf buf)
+    public static BigBookSyncPacket fromBytes(FriendlyByteBuf buf)
     {
-        return new BigBookS2CSyncPacket(WrittenBigBookContent.decode(buf.readNbt()), buf.readEnum(InteractionHand.class));
+        return new BigBookSyncPacket(WrittenBigBookContent.decode(buf.readNbt()), BigBookInfo.decode(buf.readNbt()), buf.readEnum(InteractionHand.class));
     }
 
 //    @Override

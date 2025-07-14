@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 import static com.github.minecraftschurlimods.bibliocraft.util.StringUtil.isBlank;
+import static com.github.minecraftschurlimods.bibliocraft.net.Payload.CHANNEL;
 
 public class BigBookItem extends Item {
     public boolean written;
@@ -40,7 +41,15 @@ public class BigBookItem extends Item {
     public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (level.isClientSide()) {
-            ClientUtil.openBigBookScreen(stack, player, hand);
+//            ClientUtil.openBigBookScreen(stack, player, hand);
+            BookStorage storage =  BookStorage.get();
+            if (stack.hasTag() && stack.getTag().hasUUID("uuid") &&  storage.containsUuid(stack.getTag().getUUID("uuid"))) {
+                CHANNEL.sendToServer(new BigBookRequestPacket(hand, storage.getModifiedTime(stack.getTag().getUUID("uuid"))));
+            }
+            else
+            {
+                CHANNEL.sendToServer(new BigBookRequestPacket(hand, 0L));
+            }
         }
         return InteractionResultHolder.success(stack);
     }
@@ -58,7 +67,7 @@ public class BigBookItem extends Item {
     public void appendHoverText(ItemStack stack, Level context, List<Component> tooltipComponents, TooltipFlag tooltipFlag) {
         if (stack.hasTag()) {
             CompoundTag tag = stack.getTag();
-            if (tag.contains("written") && tag.getBoolean("written") && tag.contains("author"))
+            if (written && tag.contains("author"))
             {
                 String author = tag.getString("author");
                 if (!isBlank(author))

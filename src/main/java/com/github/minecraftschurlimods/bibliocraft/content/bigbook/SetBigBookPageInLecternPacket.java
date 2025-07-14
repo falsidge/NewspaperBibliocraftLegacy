@@ -11,6 +11,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.network.NetworkEvent;
 
+import java.util.UUID;
 import java.util.function.Supplier;
 
 public record SetBigBookPageInLecternPacket(int page, Either<InteractionHand, BlockPos> target)  {
@@ -48,8 +49,17 @@ public record SetBigBookPageInLecternPacket(int page, Either<InteractionHand, Bl
 //                    data -> new WrittenBigBookContent(data.pages(), data.title(), data.author(), data.generation(), Math.min(Math.max(page, 0), Math.max(0, data.pages().size() - 1)))
 //            );
 //        }
-        WrittenBigBookContent content = WrittenBigBookContent.decode(stack.getTag());
-            stack.setTag(WrittenBigBookContent.encode(new WrittenBigBookContent(content.pages(), content.title(), content.author(), content.written(), content.generation(), Math.min(Math.max(page, 0), Math.max(0, content.pages().size() - 1)))));
+        page = Math.max(page,0);
+
+        BookStorage storage = BookStorage.get();
+        WrittenBigBookContent content;
+        if ((content = WrittenBigBookContent.decode(storage.getBookFromItem(stack, false))) != null)
+        {
+            page = Math.min(page, content.pages().size()-1);
+        }
+        stack.getOrCreateTag().putInt("current_page",page);
+
+//        stack.setTag((new WrittenBigBookContent(content.pages(), content.title(), content.author(), content.written(), content.generation(), Math.min(Math.max(page, 0), Math.max(0, content.pages().size() - 1)))).encode_info(id));
     }
     public void toBytes(FriendlyByteBuf buf) {
         buf.writeInt(page);

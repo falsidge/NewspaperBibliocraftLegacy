@@ -1,11 +1,9 @@
 package com.github.minecraftschurlimods.bibliocraft.client.screen;
 
+import com.github.minecraftschurlimods.bibliocraft.Bibliocraft;
 import com.github.minecraftschurlimods.bibliocraft.client.widget.ColorButton;
 import com.github.minecraftschurlimods.bibliocraft.client.widget.FormattedTextArea;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BigBookSignPacket;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BigBookC2SSyncPacket;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.SetBigBookPageInLecternPacket;
-import com.github.minecraftschurlimods.bibliocraft.content.bigbook.WrittenBigBookContent;
+import com.github.minecraftschurlimods.bibliocraft.content.bigbook.*;
 //import com.github.minecraftschurlimods.bibliocraft.init.BCDataComponents;
 import com.github.minecraftschurlimods.bibliocraft.init.BCItems;
 import com.github.minecraftschurlimods.bibliocraft.util.BCUtil;
@@ -36,10 +34,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.HexFormat;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static com.github.minecraftschurlimods.bibliocraft.net.Payload.CHANNEL;
 
@@ -85,12 +80,22 @@ public class BigBookScreen extends Screen {
         this.hand = hand;
         this.lectern = lectern;
         WrittenBigBookContent content;
-        if (stack.hasTag() && (content = WrittenBigBookContent.decode(stack.getTag())) != null) {
-            pages = new ArrayList<>(content.pages());
-            currentPage = content.currentPage();
-            writable = !content.written() && lectern == null;
+        BookStorage storage =  BookStorage.get();
+        UUID id;
+        if ((id = BookStorage.getUUIDFromItem(stack, false)) != null && storage.containsUuid(id) && stack.hasTag() && stack.getTag().hasUUID("uuid")) {
+            BigBookInfo info = BigBookInfo.decode(stack.getTag());
+            if (info != null) {
+                pages = new ArrayList<>(WrittenBigBookContent.decode(storage.getOrCreateBookContents(id)).pages());
+                currentPage = info.currentPage();
+                writable = !stack.is(BCItems.WRITTEN_BIG_BOOK.get()) && lectern == null;
+            }
+            else
+            {
+                pages = new ArrayList<>();
+                currentPage = 0;
+                writable = lectern == null;
+            }
         }
-
         else
         {
             pages = new ArrayList<>();
@@ -305,8 +310,8 @@ public class BigBookScreen extends Screen {
                 addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, this::done)
                         .bounds(width / 2 + 2, BACKGROUND_HEIGHT + 4, BACKGROUND_WIDTH / 2 - 4, 20)
                         .build());
-            } else {
-                addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, this::done)
+                } else {
+                    addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, this::done)
                         .bounds((width - BACKGROUND_WIDTH) / 2, BACKGROUND_HEIGHT + 4, BACKGROUND_WIDTH, 20)
                         .build());
             }
@@ -364,9 +369,14 @@ public class BigBookScreen extends Screen {
         super.onClose();
         if (writable) {
             savePages();
-            WrittenBigBookContent content = new WrittenBigBookContent(pages, "", "", false, 0, currentPage);
-            stack.setTag(WrittenBigBookContent.encode(content));
-            CHANNEL.sendToServer(new BigBookC2SSyncPacket(content, hand));
+            BookStorage storage = BookStorage.get();
+            UUID id = BookStorage.getUUIDFromItem(stack, true);
+            WrittenBigBookContent content = new WrittenBigBookContent(pages);
+            storage.setBookContents(id, content.encode());
+
+            BigBookInfo info = new BigBookInfo(currentPage,id);
+            stack.setTag(info.encode());
+            CHANNEL.sendToServer(new BigBookSyncPacket(content, info, hand));
         } else if (hand != null) {
             CHANNEL.sendToServer(new SetBigBookPageInLecternPacket(currentPage, Either.left(hand)));
         } else if (lectern != null) {
@@ -435,12 +445,18 @@ public class BigBookScreen extends Screen {
 
     private void finalizeBook() {
         savePages();
-        ItemStack stack = new ItemStack(BCItems.WRITTEN_BIG_BOOK.get());
-        WrittenBigBookContent content = new WrittenBigBookContent(pages, titleBox.getValue(), player.getName().getString(), true, 0, currentPage);
+        ItemStack newStack = new ItemStack(BCItems.WRITTEN_BIG_BOOK.get());
+//        WrittenBigBookContent content = new WrittenBigBookContent(pages, titleBox.getValue(), player.getName().getString(), true, 0, currentPage);
 //        stack.set(BCDataComponents.WRITTEN_BIG_BOOK_CONTENT, content);
-        stack.setTag(WrittenBigBookContent.encode(content));
-        player.setItemInHand(hand, stack);
-        CHANNEL.sendToServer(new BigBookSignPacket(content, hand));
+//        stack.setTag(WrittenBigBookContent.encode(content));
+        WrittenBigBookContent content = new WrittenBigBookContent(pages);
+        BookStorage storage= BookStorage.get();
+        UUID id = BookStorage.getUUIDFromItem(stack, true);
+        SignedBigBookInfo info = new SignedBigBookInfo(titleBox.getValue(), player.getName().getString(), 0);
+        newStack.setTag(info.addTag(stack.getTag()));
+        storage.setBookContents(id, content.encode());
+        player.setItemInHand(hand, newStack);
+        CHANNEL.sendToServer(new BigBookSignPacket(content, info, hand));
         Objects.requireNonNull(minecraft).setScreen(null);
     }
 

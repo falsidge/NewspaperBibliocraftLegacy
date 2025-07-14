@@ -21,26 +21,28 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
-public record WrittenBigBookContent(List<List<FormattedLine>> pages, String title, String author, Boolean written, int generation, int currentPage) {
+public record WrittenBigBookContent(List<List<FormattedLine>> pages) {
     public static <T> Codec<Optional<T>> createOptionalCodec(Codec<T> elementCodec) {
         return RecordCodecBuilder.create(ins -> ins.group(
                         Codec.BOOL.fieldOf("isPresent").forGetter(Optional::isPresent),
                         elementCodec.optionalFieldOf("content").forGetter(o -> o))
                 .apply(ins, (isPresent, content) -> isPresent && content.isPresent() ? content : Optional.empty()));
     }
-    public static final Codec<WrittenBigBookContent> CODEC = RecordCodecBuilder.create(inst -> inst.group(
-            createOptionalCodec(FormattedLine.CODEC).flatXmap(
+    public static final Codec<WrittenBigBookContent> CODEC = RecordCodecBuilder.create(inst -> inst.group(createOptionalCodec(FormattedLine.CODEC).flatXmap(
                     x-> DataResult.success(x.orElse(FormattedLine.DEFAULT)),
-                            y->DataResult.success(y == FormattedLine.DEFAULT ? Optional.empty() : Optional.of(y))
-                    ).listOf().listOf().fieldOf("pages")
-                    .forGetter(WrittenBigBookContent::pages),
-            ExtraCodecs.sizeLimitedString(0, WrittenBookItem.TITLE_MAX_LENGTH).fieldOf("title").forGetter(WrittenBigBookContent::title),
-            Codec.STRING.fieldOf("author").forGetter(WrittenBigBookContent::author),
-            Codec.BOOL.fieldOf("written").forGetter(WrittenBigBookContent::written),
-            ExtraCodecs.intRange(0, WrittenBookItem.MAX_GENERATION ).optionalFieldOf("generation", 0).forGetter(WrittenBigBookContent::generation),
-            ExtraCodecs.intRange(0, 255).optionalFieldOf("current_page", 0).forGetter(WrittenBigBookContent::currentPage)
-    ).apply(inst, WrittenBigBookContent::new));
+                    y->DataResult.success(y == FormattedLine.DEFAULT ? Optional.empty() : Optional.of(y))
+            ).listOf().listOf().fieldOf("pages")
+            .forGetter(WrittenBigBookContent::pages)).apply(inst, WrittenBigBookContent::new));
+//    public static final Codec<WrittenBigBookContent> CODEC = RecordCodecBuilder.create(inst -> inst.group(
+//            createOptionalCodec(FormattedLine.CODEC).flatXmap(
+//                    x-> DataResult.success(x.orElse(FormattedLine.DEFAULT)),
+//                            y->DataResult.success(y == FormattedLine.DEFAULT ? Optional.empty() : Optional.of(y))
+//                    ).listOf().listOf().fieldOf("pages")
+//                    .forGetter(WrittenBigBookContent::pages),
+//            BigBookInfo.CODEC.fieldOf("info").forGetter(WrittenBigBookContent::info)
+//    ).apply(inst, WrittenBigBookContent::new));
 //    public static final StreamCodec<RegistryFriendlyByteBuf, WrittenBigBookContent> STREAM_CODEC = StreamCodec.composite(
 //            FormattedLine.STREAM_CODEC.apply(ByteBufCodecs.list()).apply(ByteBufCodecs.list()), WrittenBigBookContent::pages,
 //            ByteBufCodecs.stringUtf8(WrittenBookContent.TITLE_MAX_LENGTH), WrittenBigBookContent::title,
@@ -48,12 +50,7 @@ public record WrittenBigBookContent(List<List<FormattedLine>> pages, String titl
 //            ByteBufCodecs.VAR_INT, WrittenBigBookContent::generation,
 //            ByteBufCodecs.VAR_INT, WrittenBigBookContent::currentPage,
 //            WrittenBigBookContent::new);
-    public static final WrittenBigBookContent DEFAULT = new WrittenBigBookContent(List.of(), "", "", false, 0, 0);
-
-    @Nullable
-    public WrittenBigBookContent tryCraftCopy() {
-        return generation >= WrittenBookItem.MAX_GENERATION  ? null : new WrittenBigBookContent(pages, title, author, true, generation + 1, currentPage);
-    }
+    public static final WrittenBigBookContent DEFAULT = new WrittenBigBookContent(List.of());
 
     public static WrittenBigBookContent decode(CompoundTag nbt)
     {
@@ -62,12 +59,31 @@ public record WrittenBigBookContent(List<List<FormattedLine>> pages, String titl
                 .result();
         return decoded.orElse(null);
     }
-    public static CompoundTag encode(WrittenBigBookContent content)
+//    public static CompoundTag encode(WrittenBigBookContent content)
+//    {
+//        Optional<CompoundTag> tag = CODEC.encodeStart(NbtOps.INSTANCE, content)
+//                .result()
+//                .map(dynamic -> (CompoundTag) dynamic);
+//        return tag.orElse(null);
+//    }
+    public CompoundTag encode()
     {
-        Optional<CompoundTag> tag = CODEC.encodeStart(NbtOps.INSTANCE, content)
+        Optional<CompoundTag> tag = CODEC.encodeStart(NbtOps.INSTANCE, this)
                 .result()
                 .map(dynamic -> (CompoundTag) dynamic);
         return tag.orElse(null);
     }
+//
+//
+//    public CompoundTag encode_info(UUID id)
+//    {
+//        CompoundTag tag = new CompoundTag();
+//        tag.putUUID("uuid", id);
+//        tag.putInt("current_page", currentPage);
+//        tag.putInt("generation", generation);
+//        tag.putString("author", author);
+//        tag.putBoolean("written", written);
+//        return tag;
+//    }
 
 }
