@@ -1,18 +1,20 @@
 package com.github.minecraftschurlimods.bibliocraft;
 
-import com.github.minecraftschurlimods.bibliocraft.compat.CreateEnchantmentIndustry.CreateEnchantmentIndustryCompat;
+//import com.github.minecraftschurlimods.bibliocraft.compat.CreateEnchantmentIndustry.CreateEnchantmentIndustryCompat;
 import com.github.minecraftschurlimods.bibliocraft.content.bigbook.BookStorage;
 import com.github.minecraftschurlimods.bibliocraft.content.bigbook.WrittenBigBookContent;
 import com.github.minecraftschurlimods.bibliocraft.init.BCRegistries;
 import com.github.minecraftschurlimods.bibliocraft.net.Payload;
 import com.github.minecraftschurlimods.bibliocraft.util.BCUtil;
+import com.github.minecraftschurlimods.bibliocraft.util.ModFilePackResources;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.LecternUtil;
 import com.github.minecraftschurlimods.bibliocraft.util.lectern.OpenBookInLecternPacket;
-import com.simibubi.create.foundation.ModFilePackResources;
+//import com.simibubi.create.foundation.ModFilePackResources;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.PathPackResources;
 import net.minecraft.server.packs.repository.Pack;
 import net.minecraft.server.packs.repository.PackSource;
 import net.minecraft.sounds.SoundEvents;
@@ -52,7 +54,7 @@ public final class EventHandler {
         Payload.registerMesssages();
         MinecraftForge.EVENT_BUS.addListener(EventHandler::rightClickBlock);
         if (ModList.get().isLoaded("create_enchantment_industry")) {
-            CreateEnchantmentIndustryCompat.load(MinecraftForge.EVENT_BUS);
+//            CreateEnchantmentIndustryCompat.load(MinecraftForge.EVENT_BUS);
         }
     }
 
@@ -69,7 +71,9 @@ public final class EventHandler {
             }
             IModFile modFile = modFileInfo.getFile();
             event.addRepositorySource(consumer -> {
-                Pack pack = Pack.readMetaAndCreate(BCUtil.bcLoc("big_book").toString(), Component.literal("Bibliocraft Legacy Big Book"), false, id -> new ModFilePackResources(id, modFile, "resourcepacks/big_book"), PackType.CLIENT_RESOURCES, Pack.Position.TOP, PackSource.BUILT_IN);
+                Pack pack = Pack.readMetaAndCreate(BCUtil.bcLoc("big_book").toString(), Component.literal("Bibliocraft Legacy Big Book"), false, id ->
+                        new ModFilePackResources(id, modFile, "resourcepacks/big_book"),
+                        PackType.CLIENT_RESOURCES, Pack.Position.TOP, PackSource.BUILT_IN);
                 if (pack != null) {
                     consumer.accept(pack);
                 }
